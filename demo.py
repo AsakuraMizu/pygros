@@ -1,20 +1,30 @@
 from phigros import *
 
-bpm = 128
+spd = 0.5
 
-line = Line(0, 1, 0, 1)
-with line:
-    Click(1, 2, bpm)
-line.set(0.2, rev=True)
-with Line(1, 1, 1):
-    with Sub():
-        group = Group()
-        with group:
-            Click(0.5, 1, bpm)
-            Click(1, 1, bpm).set(-1, speed=bpm / 2)
-        group.set(0.4, speed=bpm * 10)
-        with Sub(2):
-            Hold(2, 2, bpm * 2, 0).set(-1, duration=1).set(-1, pos=1)
-            Flick(3, 3, bpm)
+with Line(4 / 6, 1 / 6) as line:
+    Hold(1, 0, spd, 100)
 
-print(export())
+# with Line(0, 5 / 6) as line:
+#     Hold(2, 2 / 6, spd, 9)
+#     for i in range(50, 100):
+#         line.set(i / 50, y=1 - i / 50 / 6)
+#
+# with Line(3 / 6, 5 / 6) as line:
+#     Hold(3, 0, spd, 8)
+#     for i in range(50, 150):
+#         line.set(i / 50, y=1 - i / 50 / 6)
+#     for i in range(50, 451):
+#         line.set(i / 50, angle=(i - 50) / 400 * 360)
+#
+# with Line(0, 5 / 6) as line:
+#     Hold(4, 4 / 6, spd, 7)
+#     for i in range(50, 200):
+#         line.set(i / 50, y=1 - i / 50 / 6)
+#
+# with Line(0, 5 / 6) as line:
+#     Hold(5, 5 / 6, spd, 6)
+#     for i in range(50, 250):
+#         line.set(i / 50, y=1 - i / 50 / 6)
+
+preview()

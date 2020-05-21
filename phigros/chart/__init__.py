@@ -11,8 +11,7 @@ class Line:
         sec: float
         x: float
         y: float
-        rx: float
-        ry: float
+        angle: float
         width: float
         rev: bool
 
@@ -21,16 +20,14 @@ class Line:
                 sec: float,
                 x: float,
                 y: float,
-                rx: float,
-                ry: float,
+                angle: float,
                 width: float,
                 rev: bool
         ):
             self.sec = sec
             self.x = x
             self.y = y
-            self.rx = rx
-            self.ry = ry
+            self.angle = angle
             self.width = width
             self.rev = rev
 
@@ -41,14 +38,13 @@ class Line:
             self,
             x: T.Optional[float] = 0,
             y: T.Optional[float] = 0.5,
-            rx: T.Optional[float] = 1,
-            ry: T.Optional[float] = 0,
+            angle: T.Optional[float] = 0,
             width: T.Optional[float] = 1,
             rev: T.Optional[bool] = False
     ):
         from . import data
         self._states = []
-        self._states.append(self.LineState(0, x, y, rx, ry, width, rev))
+        self._states.append(self.LineState(0, x, y, angle, width, rev))
         self.notes = []
         data.lines.append(self)
 
@@ -57,12 +53,13 @@ class Line:
 
     def __enter__(self) -> 'Line':
         from . import data
-        data.line = self
+        self.prev_line = data.current_line
+        data.current_line = self
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         from . import data
-        data.line = None
+        data.current_line = self.prev_line
 
     def bind(self, note: 'BaseNote'):
         self.notes.append(note)
@@ -73,8 +70,7 @@ class Line:
             *,
             x: T.Optional[float] = None,
             y: T.Optional[float] = None,
-            rx: T.Optional[float] = None,
-            ry: T.Optional[float] = None,
+            angle: T.Optional[float] = None,
             width: T.Optional[float] = None,
             rev: T.Optional[bool] = None
     ) -> 'Line':
@@ -82,18 +78,16 @@ class Line:
             x = self._states[-1].x
         if y is None:
             y = self._states[-1].y
-        if rx is None:
-            rx = self._states[-1].rx
-        if ry is None:
-            ry = self._states[-1].ry
+        if angle is None:
+            angle = self._states[-1].angle
         if width is None:
             width = self._states[-1].width
         if rev is None:
             rev = self._states[-1].rev
         if sec == self._states[-1].sec:
-            self._states[-1] = self.LineState(sec, x, y, rx, ry, width, rev)
+            self._states[-1] = self.LineState(sec, x, y, angle, width, rev)
         else:
-            self._states.append(self.LineState(sec, x, y, rx, ry, width, rev))
+            self._states.append(self.LineState(sec, x, y, angle, width, rev))
         return self
 
     @property
@@ -112,7 +106,7 @@ class BaseNote:
             self.pos = pos
             self.speed = speed
 
-    line: Line
+    tap_sec: float
     show_sec: float
     _states: T.List[NoteState]
 
@@ -122,26 +116,24 @@ class BaseNote:
             pos: float,
             speed: float,
             line: T.Optional[Line] = None,
-            show_sec: T.Optional[float] = -1,
-            prevent_default: T.Optional[bool] = False
+            show_sec: T.Optional[float] = -1
     ):
         from . import data
         if line is None:
-            line = data.line
+            line = data.current_line
         if line is None:
             raise ValueError('Where is my line? :(')
-        self.line = line
         line.bind(self)
+        self.tap_sec = sec
         self.show_sec = show_sec
         self._states = []
-        if not prevent_default:
-            self._states.append(self.NoteState(sec, pos, speed))
-        data.note_stack.append(self)
+        self._states.append(self.NoteState(0, pos, speed))
+        data.notes.append(self)
         if sec > data.latest:
             data.latest = sec
 
     def __repr__(self):
-        return f'<{self.__class__.__name__} {self._states}>'
+        return f'<{self.__class__.__name__} tap_sec={self.tap_sec},show_sec={self.show_sec},states={self._states}>'
 
     def set(
             self,
@@ -151,7 +143,7 @@ class BaseNote:
             speed: T.Optional[float] = None
     ) -> 'BaseNote':
         if sec <= 0:
-            sec += self._states[0].sec
+            sec += self.tap_sec
         if pos is None:
             pos = self._states[-1].pos
         if speed is None:
@@ -180,14 +172,7 @@ class Flick(BaseNote):
 
 
 class Hold(BaseNote):
-    class HoldNoteState(BaseNote.NoteState):
-        duration: float
-
-        def __init__(self, sec: float, pos: float, speed: float, duration: float):
-            super().__init__(sec, pos, speed)
-            self.duration = duration
-
-    _states: T.List[HoldNoteState]
+    end_sec: float
 
     def __init__(
             self,
@@ -199,32 +184,11 @@ class Hold(BaseNote):
             show_sec: T.Optional[float] = -1
     ):
         from . import data
-        super().__init__(sec, pos, speed, line, show_sec, True)
-        self._states.append(self.HoldNoteState(sec, pos, speed, duration))
-        if sec + duration > data.latest:
-            data.latest = sec + duration
-
-    def set(
-            self,
-            sec: float,
-            *,
-            pos: T.Optional[float] = None,
-            speed: T.Optional[float] = None,
-            duration: T.Optional[float] = None
-    ) -> 'Hold':
-        if sec <= 0:
-            sec += self._states[0].sec
-        if pos is None:
-            pos = self._states[-1].pos
-        if speed is None:
-            speed = self._states[-1].speed
-        if duration is None:
-            duration = self._states[-1].duration
-        if sec == self._states[-1].sec:
-            self._states[-1] = self.HoldNoteState(sec, pos, speed, duration)
-        else:
-            self._states.append(self.HoldNoteState(sec, pos, speed, duration))
-        return self
+        super().__init__(sec, pos, speed, line, show_sec)
+        self.end_sec = sec + duration
+        if self.end_sec > data.latest:
+            data.latest = self.end_sec
 
 
+from .group import *
 from .helper import *

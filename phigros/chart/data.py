@@ -2,9 +2,10 @@ import typing as T
 
 from . import BaseNote, Line
 
-__all__ = ['note_stack', 'latest', 'line', 'lines']
+__all__ = ['notes', 'latest', 'current_line', 'lines']
 
-note_stack: T.List[BaseNote] = []
 latest: float = 0
-line: T.Optional[Line] = None
+current_line: T.Optional[Line] = None
+
+notes: T.List[BaseNote] = []
 lines: T.List[Line] = []
