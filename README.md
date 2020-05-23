@@ -1,3 +1,11 @@
 # pygros
 
-This project is WIP. Contact [0xWATERx0@gmail.com](mailto:0xWATERx0@gmail.com) if u'r interested.
+## requirements
+
++ cocos2d python
+
+## run demo
+
+```shell script
+python demo.py
+```
