@@ -136,7 +136,7 @@ class NoteSprite(cocos.sprite.Sprite):
 
                 def update(self, t):
                     from random import randint
-                    if randint(0, 7) < 3:
+                    if randint(0, 6) < 3:
                         self.target.parent.add(NoteExplode((self.target.x, 0)))
                     self.target.scale_y = (self._cur - self._length) * (1 - t) + self._length
 
