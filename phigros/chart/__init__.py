@@ -89,10 +89,7 @@ class Line:
             width = self._states[-1].width
         if rev is None:
             rev = self._states[-1].rev
-        if sec == self._states[-1].sec:
-            self._states[-1] = self.LineState(sec, x, y, angle, width, rev)
-        else:
-            self._states.append(self.LineState(sec, x, y, angle, width, rev))
+        self._states.append(self.LineState(sec, x, y, angle, width, rev))
         return self
 
     @property
@@ -156,10 +153,7 @@ class BaseNote:
             pos = self._states[-1].pos
         if speed is None:
             speed = self._states[-1].speed
-        if sec == self._states[-1].sec:
-            self._states[-1] = self.NoteState(sec, pos, speed)
-        else:
-            self._states.append(self.NoteState(sec, pos, speed))
+        self._states.append(self.NoteState(sec, pos, speed))
         return self
 
     @property
