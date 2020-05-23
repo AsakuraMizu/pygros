@@ -1,14 +1,17 @@
 import typing as T
 
+__all__ = ['Line', 'Click', 'Drag', 'Flick', 'Hold', 'Offset']
+
 
 class BaseState:
+    sec: float
+
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} ' + ','.join(f'{k}={v}' for k, v in self.__dict__.items()) + '>'
 
 
 class Line:
     class LineState(BaseState):
-        sec: float
         x: float
         y: float
         angle: float
@@ -42,11 +45,11 @@ class Line:
             width: T.Optional[float] = 1,
             rev: T.Optional[bool] = False
     ):
-        from . import data
+        from . import chart
         self._states = []
         self._states.append(self.LineState(0, x, y, angle, width, rev))
         self.notes = []
-        data.lines.append(self)
+        chart.lines.append(self)
 
     def __repr__(self):
         return f'<{self.__class__.__name__} {self._states}'
@@ -74,6 +77,8 @@ class Line:
             width: T.Optional[float] = None,
             rev: T.Optional[bool] = None
     ) -> 'Line':
+        from . import data
+        sec = sec * data.multiplier + data.offset
         if x is None:
             x = self._states[-1].x
         if y is None:
@@ -97,7 +102,6 @@ class Line:
 
 class BaseNote:
     class NoteState(BaseState):
-        sec: float
         pos: float
         speed: float
 
@@ -115,22 +119,22 @@ class BaseNote:
             sec: float,
             pos: float,
             speed: float,
-            line: T.Optional[Line] = None,
-            show_sec: T.Optional[float] = -1
+            show_sec: T.Optional[float] = None,
+            line: T.Optional[Line] = None
     ):
-        from . import data
+        from . import chart, data
         if line is None:
             line = data.current_line
         if line is None:
             raise ValueError('Where is my line? :(')
         line.bind(self)
-        self.tap_sec = sec
-        self.show_sec = show_sec
+        self.tap_sec = sec * data.multiplier + data.offset
+        if show_sec is None:
+            show_sec = sec
+        self.show_sec = show_sec * data.multiplier + data.offset
         self._states = []
         self._states.append(self.NoteState(0, pos, speed))
-        data.notes.append(self)
-        if sec > data.latest:
-            data.latest = sec
+        chart.notes.append(self)
 
     def __repr__(self):
         return f'<{self.__class__.__name__} tap_sec={self.tap_sec},show_sec={self.show_sec},states={self._states}>'
@@ -142,8 +146,12 @@ class BaseNote:
             pos: T.Optional[float] = None,
             speed: T.Optional[float] = None
     ) -> 'BaseNote':
+        from . import data
+        sec = sec * data.multiplier
         if sec <= 0:
             sec += self.tap_sec
+        else:
+            sec += data.offset
         if pos is None:
             pos = self._states[-1].pos
         if speed is None:
@@ -181,14 +189,26 @@ class Hold(BaseNote):
             speed: float,
             duration: float,
             line: T.Optional[Line] = None,
-            show_sec: T.Optional[float] = -1
+            show_sec: T.Optional[float] = None
     ):
         from . import data
         super().__init__(sec, pos, speed, line, show_sec)
-        self.end_sec = sec + duration
-        if self.end_sec > data.latest:
-            data.latest = self.end_sec
+        self.end_sec = (sec + duration) * data.multiplier + data.offset
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__} tap_sec={self.tap_sec},end_sec={self.end_sec},' \
+               f'show_sec={self.show_sec},states={self._states}>'
+
+
+class Offset:
+    def __init__(self, sec: float):
+        from . import data
+        data.offset += sec * data.multiplier
 
 
 from .group import *
 from .helper import *
+from . import group, helper
+
+__all__ += group.__all__
+__all__ += helper.__all__

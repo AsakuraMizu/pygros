@@ -1,50 +1,62 @@
 import typing as T
 
-from . import BaseNote
-from . import Hold
+from . import BaseNote, BaseState, Hold
 
-__all__ = ['Sub', 'Group']
+__all__ = ['Multiplier', 'Group']
 
 
 class BaseGroup:
     notes: T.List[BaseNote]
+    states: T.List[BaseState]
     latest: float
 
     def __enter__(self) -> 'BaseGroup':
-        from . import data
-        self.notes = data.notes
-        self.latest = data.latest
-        data.notes = []
-        data.latest = 0
+        from . import chart
+        self.notes = chart.notes
+        chart.notes = []
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        from . import chart
+        self.notes, chart.notes = chart.notes, [*self.notes, *chart.notes]
+
+
+class Multiplier(BaseGroup):
+    mul: float
+
+    def __init__(self, mul: T.Optional[float] = 1):
+        self.mul = mul
+
+    def __enter__(self):
         from . import data
-        self.notes, data.notes = data.notes, [*self.notes, *data.notes]
-        self.latest, data.latest = data.latest, max(self.latest, data.latest)
-
-
-class Sub(BaseGroup):
-    sec: float
-
-    def __init__(self, sec: T.Optional[float] = None):
-        from . import data
-        if sec is None:
-            sec = data.latest
-        self.sec = sec
+        data.multiplier *= self.mul
+        return super().__enter__()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        super(Sub, self).__exit__(exc_type, exc_val, exc_tb)
-        for note in self.notes:
-            for st in note.states:
-                st.sec += self.sec
-            note.tap_sec += self.sec
-            note.show_sec += self.sec
-            if isinstance(note, Hold):
-                note.end_sec += self.sec
+        super().__exit__(exc_type, exc_val, exc_tb)
+        from . import data
+        data.multiplier /= self.mul
 
 
 class Group(BaseGroup):
+    opened: bool
+    states: T.List[T.Tuple[float, float, float]]
+
+    def __init__(self):
+        self.opened = False
+        self.states = []
+
+    def __enter__(self):
+        super().__enter__()
+        self.opened = True
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+        self.opened = False
+        for st in self.states:
+            for note in self.notes:
+                note.set(st[0], pos=st[1], speed=st[2])
+
     def set(
             self,
             sec: float,
@@ -52,9 +64,9 @@ class Group(BaseGroup):
             pos: T.Optional[float] = None,
             speed: T.Optional[float] = None
     ) -> 'Group':
-        for note in self.notes:
-            if isinstance(note, Hold):
-                note.set(sec, pos=pos, speed=speed)
-            else:
+        if self.opened:
+            self.states.append((sec, pos, speed))
+        else:
+            for note in self.notes:
                 note.set(sec, pos=pos, speed=speed)
         return self
