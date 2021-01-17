@@ -1,33 +1,57 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Dict, Generic, List, TypeVar
+from typing import Any, Dict, Generic, List, TypeVar, Union
 
 
-# __all__ = [
-#     'Ease',
-#     'construct',
-#     'move',
-#     'rotate',
-#     'fade',
-#     'speed',
-#     'notevis',
-#     'tap',
-#     'flick',
-#     'drag',
-#     'hold',
-#     'line',
-#     'bpm',
-#     'timing',
-# ]
+__all__ = [
+    'mul',
+    'add',
+    'linear',
+    'jump',
+    'backIn',
+    'backOut',
+    'bounceIn',
+    'bounceOut',
+    'circIn',
+    'circOut',
+    'cubicIn',
+    'cubicOut',
+    'elasticIn',
+    'elasticOut',
+    'expoIn',
+    'expoOut',
+    'quadIn',
+    'quadOut',
+    'quartIn',
+    'quartOut',
+    'sineIn',
+    'sineOut',
+    'construct',
+    'move',
+    'rotate',
+    'fade',
+    'speed',
+    'notevis',
+    'tap',
+    'flick',
+    'drag',
+    'hold',
+    'draw',
+    'line',
+    'offset',
+    'bpm',
+    'export',
+]
 
 
 T = TypeVar('T')
 
 
 class HisVar(Generic[T]):
-    _stack: List[T] = []
+    _stack: List[T]
 
     def __init__(self, initial_value: T = None):
+        self._stack = []
         if initial_value is not None:
             self.set(initial_value)
 
@@ -75,27 +99,27 @@ def add(value: float):
     ctx.add += ctx.mul.get() * value
 
 
-class Ease(Enum):
-    linear = 'linear'
-    jump = 'jump'
-    backIn = 'backIn'
-    backOut = 'backOut'
-    bounceIn = 'bounceIn'
-    bounceOut = 'bounceOut'
-    circIn = 'circIn'
-    circOut = 'circOut'
-    cubicIn = 'cubicIn'
-    cubicOut = 'cubicOut'
-    elasticIn = 'elasticIn'
-    elasticOut = 'elasticOut'
-    expoIn = 'expoIn'
-    expoOut = 'expoOut'
-    quadIn = 'quadIn'
-    quadOut = 'quadOut'
-    quartIn = 'quartIn'
-    quartOut = 'quartOut'
-    sineIn = 'sineIn'
-    sineOut = 'sineOut'
+Ease = str
+linear = 'linear'
+jump = 'jump'
+backIn = 'backIn'
+backOut = 'backOut'
+bounceIn = 'bounceIn'
+bounceOut = 'bounceOut'
+circIn = 'circIn'
+circOut = 'circOut'
+cubicIn = 'cubicIn'
+cubicOut = 'cubicOut'
+elasticIn = 'elasticIn'
+elasticOut = 'elasticOut'
+expoIn = 'expoIn'
+expoOut = 'expoOut'
+quadIn = 'quadIn'
+quadOut = 'quadOut'
+quartIn = 'quartIn'
+quartOut = 'quartOut'
+sineIn = 'sineIn'
+sineOut = 'sineOut'
 
 
 class Event:
@@ -123,18 +147,18 @@ class Event:
 
 
 def construct(start_time: float, end_time: float, x: float, y: float, angle: float = 0,
-              alpha: float = 1, speed_: float = 1) -> Event:
+              alpha: float = 1, spd: float = 1) -> Event:
     return Event('construct', start_time, end_time, {
         'x': x,
         'y': y,
         'angle': angle,
         'alpha': alpha,
-        'speed': speed_,
+        'speed': spd,
     })
 
 
-def move(start_time: float, end_time: float, x: float, y: float, ease_x: Ease = Ease.linear,
-         ease_y: Ease = Ease.linear) -> Event:
+def move(start_time: float, end_time: float, x: float, y: float, ease_x: Ease = linear,
+         ease_y: Ease = linear) -> Event:
     return Event('move', start_time, end_time, {
         'x': x,
         'y': y,
@@ -143,23 +167,23 @@ def move(start_time: float, end_time: float, x: float, y: float, ease_x: Ease = 
     })
 
 
-def rotate(start_time: float, end_time: float, angle: float, ease: Ease = Ease.linear) -> Event:
+def rotate(start_time: float, end_time: float, angle: float, ease: Ease = linear) -> Event:
     return Event('rotate', start_time, end_time, {
         'angle': angle,
         'ease': ease,
     })
 
 
-def fade(start_time: float, end_time: float, alpha: float, ease: Ease = Ease.linear) -> Event:
+def fade(start_time: float, end_time: float, alpha: float, ease: Ease = linear) -> Event:
     return Event('fade', start_time, end_time, {
         'alpha': alpha,
         'ease': ease,
     })
 
 
-def speed(start_time: float, end_time: float, speed_: float, ease: Ease = Ease.jump) -> Event:
+def speed(start_time: float, end_time: float, spd: float, ease: Ease = jump) -> Event:
     return Event('speed', start_time, end_time, {
-        'speed': speed_,
+        'speed': spd,
         'ease': ease,
     })
 
@@ -180,13 +204,13 @@ class Note:
     isFake: bool
 
     def __init__(self, type_: str, start_time: float, end_time: float, relative_x: float,
-                 side: int, speed_: float, is_fake: bool):
+                 side: int, spd: float, is_fake: bool):
         self.type = type_
         self.startTime = t(start_time)
         self.endTime = t(end_time)
         self.relativeX = relative_x
         self.side = side
-        self.speed = speed_
+        self.speed = spd
         self.isFake = is_fake
 
         ctx.line.get().noteList.append(self)
@@ -204,21 +228,60 @@ class Note:
         }
 
 
-def tap(time: float, relative_x: float, *, side: int = 1, speed_: float = 1, is_fake: bool = False) -> Note:
-    return Note('tap', time, time, relative_x, side, speed_, is_fake)
+def tap(time: float, relative_x: float, *, side: int = 1, spd: float = 1, is_fake: bool = False) -> Note:
+    return Note('tap', time, time, relative_x, side, spd, is_fake)
 
 
-def flick(time: float, relative_x: float, *, side: int = 1, speed_: float = 1, is_fake: bool = False) -> Note:
-    return Note('flick', time, time, relative_x, side, speed_, is_fake)
+def flick(time: float, relative_x: float, *, side: int = 1, spd: float = 1, is_fake: bool = False) -> Note:
+    return Note('flick', time, time, relative_x, side, spd, is_fake)
 
 
-def drag(time: float, relative_x: float, *, side: int = 1, speed_: float = 1, is_fake: bool = False) -> Note:
-    return Note('drag', time, time, relative_x, side, speed_, is_fake)
+def drag(time: float, relative_x: float, *, side: int = 1, spd: float = 1, is_fake: bool = False) -> Note:
+    return Note('drag', time, time, relative_x, side, spd, is_fake)
 
 
-def hold(start_time: float, end_time: float, relative_x: float, *, side: int = 1, speed_: float = 1,
+def hold(start_time: float, end_time: float, relative_x: float, *, side: int = 1, spd: float = 1,
          is_fake: bool = False) -> Note:
-    return Note('hold', start_time, end_time, relative_x, side, speed_, is_fake)
+    return Note('hold', start_time, end_time, relative_x, side, spd, is_fake)
+
+
+def draw(time: float, drawing: Union[List[str], str], *, d: int = 1, left: int = -1, right: int = 1,
+         side: int = 1, spd: float = 1, is_fake: bool = False) -> List[Note]:
+    lines: List[str] = drawing.split('\n') if type(drawing) is str else drawing
+    lines = [li for li in lines if not li == '']
+    lines = list(reversed(lines))
+    width = max([len(li) for li in lines])
+    rtn: List[Note] = []
+    holds: Dict[int, int] = {}
+
+    for i, li in enumerate(lines):
+        for j, no in enumerate(li):
+            dic = {
+                't': tap,
+                'f': flick,
+                'F': flick,
+                'd': drag,
+                'D': drag,
+            }
+            if no in dic:
+                dic[no](time + d * i, left + (right - left) / width * (j + 0.5), side=side, spd=spd, is_fake=is_fake)
+            if no == 'H':
+                hold(time + d * i, time + d * i, left + (right - left) / width * (j + 0.5),
+                     side=side, spd=spd, is_fake=is_fake)
+            if no == 'h' or no == 'F' or no == 'D':
+                if j not in holds:
+                    holds[j] = i
+            else:
+                if j in holds:
+                    hold(time + d * holds[j], time + d * i, left + (right - left) / width * (j + 0.5),
+                         side=side, spd=spd, is_fake=is_fake)
+                    holds.pop(j)
+
+    for j in holds.keys():
+        hold(time + d * holds[j], time + d * len(lines), left + (right - left) / width * (j + 0.5),
+             side=side, spd=spd, is_fake=is_fake)
+
+    return rtn
 
 
 class Line:
@@ -244,10 +307,10 @@ class Line:
 
 
 def line(start_time: float, end_time: float, x: float, y: float, angle: float = 0,
-         alpha: float = 1, speed_: float = 1) -> Line:
+         alpha: float = 1, spd: float = 1) -> Line:
     rtn = Line()
     with rtn:
-        construct(start_time, end_time, x, y, angle, alpha, speed_)
+        construct(start_time, end_time, x, y, angle, alpha, spd)
     return rtn
 
 
