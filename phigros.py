@@ -285,10 +285,12 @@ def draw(time: float, drawing: Union[List[str], str], *, d: int = 1, left: int =
 
 
 class Line:
-    eventList: List[Event] = []
-    noteList: List[Note] = []
+    eventList: List[Event]
+    noteList: List[Note]
 
     def __init__(self):
+        self.eventList = []
+        self.noteList = []
         ctx.lines.append(self)
 
     def __enter__(self) -> 'Line':
