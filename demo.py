@@ -1,19 +1,26 @@
 from json import dumps
 from phigros import *
 
-offset(10)
-bpm(0, 222.22)
+data = c(
+    [b(0, 100)],
+    [
+        l(
+            0, 114514,
+            [
+                t(250, 0),
+                *dr(500, [
+                    'ffff'
+                ])
+            ],
+            controlX=[s(0, 0)],
+            controlY=[s(0, 0)],
+            angle=[s(0, 0)],
+            speed=[s(0, 0.005)],
+            noteAlpha=[s(0, 1)],
+            lineAlpha=[s(0, 1)],
+            displayRange=[s(0, -1)],
+        ),
+    ],
+)
 
-l = line(0, 114514, 0, 0)
-
-with mul(144):
-    with l:
-        move(1, 2, 0.3, -0.3, sineIn, bounceOut)
-        draw(0, """
-f
-h   t
-h   t
-d   t
-""")
-
-print(dumps(export(), indent=4))
+print(dumps(data))
