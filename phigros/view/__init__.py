@@ -13,8 +13,8 @@ __all__ = ['preview']
 combo_label = None
 score_label = None
 
-def play_sound():
-    return pyglet.resource.media('click.wav').play()
+# def play_sound():
+#     return pyglet.resource.media('click.wav').play()
 
 
 def update_labels():
@@ -58,12 +58,51 @@ def score():
 
 class NoteExplode(cocos.sprite.Sprite):
     def __init__(self, pos):
-        super().__init__('explode.png', pos)
+        images=[pyglet.resource.image('Explode-1_1.png'),
+                pyglet.resource.image('Explode-1_2.png'),
+                pyglet.resource.image('Explode-1_3.png'),
+                pyglet.resource.image('Explode-1_4.png'),
+                pyglet.resource.image('Explode-1_5.png'),
+                pyglet.resource.image('Explode-1_6.png'),
+                pyglet.resource.image('Explode-1_7.png'),
+                pyglet.resource.image('Explode-1_8.png'),
+                pyglet.resource.image('Explode-1_9.png'),
+                pyglet.resource.image('Explode-1_10.png'),
+                pyglet.resource.image('Explode-1_11.png'),
+                pyglet.resource.image('Explode-1_12.png'),
+                pyglet.resource.image('Explode-1_13.png'),
+                pyglet.resource.image('Explode-1_14.png'),
+                pyglet.resource.image('Explode-1_15.png'),
+                pyglet.resource.image('Explode-1_16.png'),
+                pyglet.resource.image('Explode-1_17.png'),
+                pyglet.resource.image('Explode-1_18.png'),
+                pyglet.resource.image('Explode-1_19.png'),
+                pyglet.resource.image('Explode-1_20.png'),
+                pyglet.resource.image('Explode-1_21.png'),
+                pyglet.resource.image('Explode-1_22.png'),
+                pyglet.resource.image('Explode-1_23.png'),
+                pyglet.resource.image('Explode-1_24.png'),
+                pyglet.resource.image('Explode-1_25.png'),
+                pyglet.resource.image('Explode-1_26.png'),
+                pyglet.resource.image('Explode-1_27.png'),
+                pyglet.resource.image('Explode-1_28.png'),
+                pyglet.resource.image('Explode-1_29.png')]
+        ani = pyglet.image.Animation.from_image_sequence(images, duration=0.01, loop=False)
+        super().__init__(ani, pos)
         self.do(cac.ScaleBy(1.3, 0.1) + cac.Delay(0.05) + cac.FadeOut(0.05) + cac.CallFuncS(lambda e: e.kill()))
 
 
 class NoteSprite(cocos.sprite.Sprite):
     def __init__(self, note: BaseNote):
+        def play_sound():
+            sound = 'click.wav'
+            if isinstance(note, Drag):
+                sound = 'drag.wav'
+            elif isinstance(note, Flick):
+                sound = 'flick.wav'
+            # elif isinstance(note, Hold):
+            #     img = 'Hold2.png'
+            return pyglet.resource.media(sound).play()
         def p(state: BaseNote.NoteState):
             res = copy.copy(state)
             res.pos *= settings.size
@@ -72,7 +111,7 @@ class NoteSprite(cocos.sprite.Sprite):
 
         states = list(map(p, sorted(note.states, key=lambda e: e.sec)))
         dis = 0
-        img = 'click.png'
+        img = 'tap.png'
         if isinstance(note, Drag):
             img = 'drag.png'
         elif isinstance(note, Flick):
@@ -184,11 +223,10 @@ class LineSprite(cocos.sprite.Sprite):
 
         states = list(map(p, sorted(line.states, key=lambda e: e.sec)))
         super().__init__('line_empty.png', (states[0].x, states[0].y), states[0].angle)
+        line_sprite = cocos.sprite.Sprite('line.png')
+        self.add(line_sprite)
         for note in line.notes:
             self.add(NoteSprite(note))
-        line_sprite = cocos.sprite.Sprite('line.png')
-
-        self.add(line_sprite)
         action = None
         pre = states[0]
         for i in states[1:]:
