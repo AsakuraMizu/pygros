@@ -1,22 +1,18 @@
 import typing as T
 
 __all__ = ['Line', 'Click', 'Drag', 'Flick', 'Hold', 'Offset']
-
-
 class BaseState:
     sec: float
 
     def __repr__(self) -> str:
         return f'<{self.__class__.__name__} ' + ','.join(f'{k}={v}' for k, v in self.__dict__.items()) + '>'
-
-
 class Line:
     class LineState(BaseState):
         x: float
         y: float
         angle: float
         width: float
-        rev: bool
+        rev: bool   # reverse
 
         def __init__(
                 self,
@@ -50,23 +46,19 @@ class Line:
         self._states.append(self.LineState(0, x, y, angle, width, rev))
         self.notes = []
         chart.lines.append(self)
-
     def __repr__(self):
         return f'<{self.__class__.__name__} {self._states}'
-
     def __enter__(self) -> 'Line':
         from . import data
+        # a stack-like data structure
         self.prev_line = data.current_line
         data.current_line = self
         return self
-
     def __exit__(self, exc_type, exc_val, exc_tb):
         from . import data
         data.current_line = self.prev_line
-
     def bind(self, note: 'BaseNote'):
         self.notes.append(note)
-
     def set(
             self,
             sec: float,
@@ -77,6 +69,7 @@ class Line:
             width: T.Optional[float] = None,
             rev: T.Optional[bool] = None
     ) -> 'Line':
+        # this method takes in a new status
         from . import data
         sec = sec * data.multiplier + data.offset
         if x is None:
@@ -91,9 +84,9 @@ class Line:
             rev = self._states[-1].rev
         self._states.append(self.LineState(sec, x, y, angle, width, rev))
         return self
-
     @property
     def states(self) -> T.List[LineState]:
+        # the decorator @property is used to get things like <Line>.states, without the states()
         return self._states
 
 
@@ -101,16 +94,13 @@ class BaseNote:
     class NoteState(BaseState):
         pos: float
         speed: float
-
         def __init__(self, sec: float, pos: float, speed: float):
             self.sec = sec
             self.pos = pos
             self.speed = speed
-
     tap_sec: float
     show_sec: float
     _states: T.List[NoteState]
-
     def __init__(
             self,
             sec: float,
@@ -123,6 +113,7 @@ class BaseNote:
         if line is None:
             line = data.current_line
         if line is None:
+            # fallback - if data.current_line is still NoneType
             raise ValueError('Where is my line? :(')
         line.bind(self)
         self.tap_sec = sec * data.multiplier + data.offset
@@ -132,10 +123,8 @@ class BaseNote:
         self._states = []
         self._states.append(self.NoteState(0, pos, speed))
         chart.notes.append(self)
-
     def __repr__(self):
         return f'<{self.__class__.__name__} tap_sec={self.tap_sec},show_sec={self.show_sec},states={self._states}>'
-
     def set(
             self,
             sec: float,
@@ -143,6 +132,7 @@ class BaseNote:
             pos: T.Optional[float] = None,
             speed: T.Optional[float] = None
     ) -> 'BaseNote':
+        # the * in definition requires 'pos='-like usage
         from . import data
         sec = sec * data.multiplier
         if sec <= 0:
@@ -155,24 +145,15 @@ class BaseNote:
             speed = self._states[-1].speed
         self._states.append(self.NoteState(sec, pos, speed))
         return self
-
     @property
     def states(self) -> T.List[NoteState]:
         return self._states
-
-
 class Click(BaseNote):
     pass
-
-
 class Drag(BaseNote):
     pass
-
-
 class Flick(BaseNote):
     pass
-
-
 class Hold(BaseNote):
     end_sec: float
 
@@ -199,10 +180,9 @@ class Offset:
         from . import data
         data.offset += sec * data.multiplier
 
-
+from . import group, helper
 from .group import *
 from .helper import *
-from . import group, helper
 
 __all__ += group.__all__
 __all__ += helper.__all__

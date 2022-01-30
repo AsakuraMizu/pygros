@@ -17,6 +17,18 @@ pip install cocos2d
 python demo.py
 ```
 
+## PhiFormat-Json support (still under development)
+
+(This feature is still under early development and currently don't fully meet expectations)
+
+Plz notice that this repo isn't going to receive up-to-date commit due to some reasons.
+
+You can change a few options in `main.py` to get a preview experience.
+
+Documentation isn't fully implanted and so are comments.
+
+We do hope u report problems u had using this "new" feature on Gh issues. thx
+
 ## License
 
 Source code (unless stated otherwise) is distributed under [MIT](https://opensource.org/licenses/MIT) license. See [LICENSE](LICENSE) for more information.

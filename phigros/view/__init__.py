@@ -1,8 +1,11 @@
 import copy
-from os import path
+from os import path, stat
 
 import cocos
-import cocos.actions as cac
+import cocos.actions
+import cocos.sprite
+import cocos.layer
+
 import pyglet
 
 from . import data, settings
@@ -12,10 +15,6 @@ __all__ = ['preview']
 
 combo_label = None
 score_label = None
-
-# def play_sound():
-#     return pyglet.resource.media('click.wav').play()
-
 
 def update_labels():
     global combo_label, score_label
@@ -31,8 +30,8 @@ def update_labels():
     combo_label = cocos.text.Label(text, (settings.width / 2, settings.height),
                                    font_name=settings.font_name, font_size=20,
                                    anchor_x='center', anchor_y='top')
-    combo_label.add(cocos.text.Label('auto' if data.combo > 2 else '', (0, -30),
-                                     font_name=settings.font_name, font_size=15,
+    combo_label.add(cocos.text.Label('AUTOPLAY' if data.combo > 2 else '', (0, -30),
+                                     font_name=settings.font_name, font_size=10,
                                      anchor_x='center', anchor_y='top'))
     if parent is not None:
         parent.add(combo_label)
@@ -89,7 +88,7 @@ class NoteExplode(cocos.sprite.Sprite):
                 pyglet.resource.image('Explode-1_29.png')]
         ani = pyglet.image.Animation.from_image_sequence(images, duration=0.01, loop=False)
         super().__init__(ani, pos)
-        self.do(cac.ScaleBy(1.3, 0.1) + cac.Delay(0.05) + cac.FadeOut(0.05) + cac.CallFuncS(lambda e: e.kill()))
+        self.do(cocos.actions.ScaleBy(1.3, 0.1) + cocos.actions.Delay(0.05) + cocos.actions.FadeOut(0.05) + cocos.actions.CallFuncS(lambda e: e.kill()))
 
 
 class NoteSprite(cocos.sprite.Sprite):
@@ -100,16 +99,17 @@ class NoteSprite(cocos.sprite.Sprite):
                 sound = 'drag.wav'
             elif isinstance(note, Flick):
                 sound = 'flick.wav'
-            # elif isinstance(note, Hold):
-            #     img = 'Hold2.png'
             return pyglet.resource.media(sound).play()
         def p(state: BaseNote.NoteState):
             res = copy.copy(state)
             res.pos *= settings.size
             res.speed *= settings.size
             return res
-
-        states = list(map(p, sorted(note.states, key=lambda e: e.sec)))
+        note.states.sort(key=lambda e:e.sec)
+        for state in note.states:
+            state.pos *=settings.size
+            state.speed *=settings.size
+        states = note.states
         dis = 0
         img = 'tap.png'
         if isinstance(note, Drag):
@@ -145,27 +145,27 @@ class NoteSprite(cocos.sprite.Sprite):
         super().__init__(img, (states[0].pos, dis))
         if isinstance(note, Hold):
             self.scale_y = length / self.image.height
-        action = cac.Hide()
+        action = cocos.actions.Hide()
         sec = 0
         speed = states[0].speed
         for i in states:
             if i.sec > note.tap_sec:
                 break
             dis -= (i.sec - sec) * speed
-            act = cac.MoveTo((i.pos, dis), i.sec - sec)
+            act = cocos.actions.MoveTo((i.pos, dis), i.sec - sec)
             if sec <= note.show_sec < i.sec:
-                act |= cac.Delay(note.show_sec - sec) + cac.Show()
+                act |= cocos.actions.Delay(note.show_sec - sec) + cocos.actions.Show()
             action += act
             sec = i.sec
             speed = i.speed
-        act = cac.MoveTo((states[-1].pos, length // 2 if isinstance(note, Hold) else 0), note.tap_sec - sec)
+        act = cocos.actions.MoveTo((states[-1].pos, length // 2 if isinstance(note, Hold) else 0), note.tap_sec - sec)
         if sec <= note.show_sec < note.tap_sec:
-            act |= cac.Delay(note.show_sec - sec) + cac.Show()
+            act |= cocos.actions.Delay(note.show_sec - sec) + cocos.actions.Show()
         action += act
-        action += cac.CallFunc(play_sound)
+        action += cocos.actions.CallFunc(play_sound)
 
         if isinstance(note, Hold):
-            class Qwq(cac.IntervalAction):
+            class Qwq(cocos.actions.IntervalAction):
                 def init(self, length, duration):
                     self._length = length
                     self.duration = duration
@@ -185,10 +185,10 @@ class NoteSprite(cocos.sprite.Sprite):
                 if i.sec <= note.tap_sec:
                     continue
                 nowlen -= (i.sec - sec) * i.speed
-                action += cac.MoveTo((states[-1].pos, nowlen // 2), i.sec - sec) | \
+                action += cocos.actions.MoveTo((states[-1].pos, nowlen // 2), i.sec - sec) | \
                           Qwq(nowlen / self.image.height, i.sec - sec)
                 sec = i.sec
-            action += cac.MoveTo((states[-1].pos, 0), note.end_sec - sec) | \
+            action += cocos.actions.MoveTo((states[-1].pos, 0), note.end_sec - sec) | \
                       Qwq(0, note.end_sec - sec)
 
         def explode(e: NoteSprite):
@@ -196,13 +196,13 @@ class NoteSprite(cocos.sprite.Sprite):
             e.parent.add(NoteExplode((e.x, e.y)))
             score()
 
-        action += cac.CallFuncS(explode)
+        action += cocos.actions.CallFuncS(explode)
         self.do(action)
 
 
 class LineSprite(cocos.sprite.Sprite):
     def __init__(self, line: Line):
-        class Qwq(cac.IntervalAction):
+        class width_adjustment(cocos.actions.IntervalAction):
             def init(self, width, duration):
                 self._width = width
                 self.duration = duration
@@ -212,16 +212,13 @@ class LineSprite(cocos.sprite.Sprite):
 
             def update(self, t):
                 self.target.scale_y = (self._cur - self._width) * (1 - t) + self._width
-
-        def p(state: Line.LineState):
-            res = copy.copy(state)
-            res.x *= settings.size
-            res.x += (settings.width - settings.size) / 2
-            res.y *= settings.size
-            res.y += (settings.height - settings.size) / 2
-            return res
-
-        states = list(map(p, sorted(line.states, key=lambda e: e.sec)))
+        line.states.sort(key=lambda e:e.sec)
+        for state in line.states:
+            state.x*=settings.size
+            state.x += (settings.width - settings.size) / 2
+            state.y *= settings.size
+            state.y += (settings.height - settings.size) / 2
+        states = line.states
         super().__init__('line_empty.png', (states[0].x, states[0].y), states[0].angle)
         line_sprite = cocos.sprite.Sprite('line.png')
         self.add(line_sprite)
@@ -230,9 +227,9 @@ class LineSprite(cocos.sprite.Sprite):
         action = None
         pre = states[0]
         for i in states[1:]:
-            act = cac.MoveTo((i.x, i.y), i.sec - pre.sec) | cac.RotateBy(i.angle - pre.angle, i.sec - pre.sec)
+            act = cocos.actions.MoveTo((i.x, i.y), i.sec - pre.sec) | cocos.actions.RotateBy(i.angle - pre.angle, i.sec - pre.sec)
             if i.rev != pre.rev:
-                act |= cac.Delay(i.sec - pre.sec) + cac.FlipY(duration=0.01)
+                act |= cocos.actions.Delay(i.sec - pre.sec) + cocos.actions.FlipY(duration=0.01)
             if not action:
                 action = act
             else:
@@ -243,7 +240,7 @@ class LineSprite(cocos.sprite.Sprite):
         action = None
         sec = 0
         for i in states:
-            act = Qwq(i.width, i.sec - sec)
+            act = width_adjustment(i.width, i.sec - sec)
             if not action:
                 action = act
             else:
@@ -280,7 +277,7 @@ class Player(cocos.layer.Layer):
 
 def preview(
         name='test',
-        diff='EZ Lv.0',
+        diff='SP Lv ?',
         music=None,
         background=None,
         *,
