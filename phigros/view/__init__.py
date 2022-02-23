@@ -9,7 +9,7 @@ import cocos.layer
 import pyglet
 
 from . import data, settings
-from ..chart import Line, BaseNote, Drag, Flick, Hold, chart
+from ..chart import Line, BaseNote, Drag, Flick, Hold, chart, Click
 
 __all__ = ['preview']
 
@@ -112,10 +112,30 @@ class NoteSprite(cocos.sprite.Sprite):
         states = note.states
         dis = 0
         img = 'tap.png'
-        if isinstance(note, Drag):
-            img = 'drag.png'
+        if isinstance(note, Click):
+            for n in chart.notes:
+                if n != note:
+                    if(n.tap_sec == note.tap_sec):
+                        img = "TapHL.png"
+                        break
+                    else:
+                        img = "tap.png"
+        elif isinstance(note, Drag):
+            for n in chart.notes:
+                if n != note:
+                    if(n.tap_sec == note.tap_sec):
+                        img = "DragHL.png"
+                        break
+                    else:
+                        img = "drag.png"
         elif isinstance(note, Flick):
-            img = 'flick.png'
+            for n in chart.notes:
+                if n != note:
+                    if(n.tap_sec == note.tap_sec):
+                        img = "FlickHL.png"
+                        break
+                    else:
+                        img = "flick.png"
         elif isinstance(note, Hold):
             img = 'hold.png'
             sec = note.tap_sec
