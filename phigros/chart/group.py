@@ -1,6 +1,6 @@
 import typing as T
 
-from . import BaseNote, BaseState, Hold
+from . import BaseNote, BaseState
 
 __all__ = ['Multiplier', 'Group']
 
@@ -12,7 +12,7 @@ class BaseGroup:
 
     def __enter__(self) -> 'BaseGroup':
         from . import chart
-        self.notes = chart.notes
+        self.notes = chart.notes # shallow copy
         chart.notes = []
         return self
 

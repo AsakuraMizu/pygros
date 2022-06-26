@@ -2,13 +2,15 @@
 
 An open-source fanmade chart emulator of rhythm game [Phigros](https://pigeon-games.com/phigros). 
 
-## Requirements
+## Documentation
 
-[Cocos2d(Python)](http://python.cocos2d.org/)
+In progress. Click `Watch` for future updates.
 
-Install it by running:
+## Dependencies
+
+Install required dependencies via:
 ```shell script
-pip install cocos2d
+pip install -r requirements.txt
 ```
 
 ## Demo
@@ -16,6 +18,24 @@ pip install cocos2d
 ```shell script
 python demo.py
 ```
+
+## PhiFormat-Json support
+
+(This feature is still under early development and currently don't fully meet expectations)
+
+Plz notice that this repo isn't going to receive up-to-date commit due to some reasons.
+
+You can change a few options in `main.py` to get a preview experience.
+
+Documentation isn't fully implanted and so are comments.
+
+We do hope u report problems u had using this "new" feature on Gh issues. thx
+
+## In case you run into an error:
+
+Please write a issue, describing the problem and the enviroment you are running.
+
+If you know how to fix it, please create a PR, and make sure you allow `edit from owner`.
 
 ## License
 
